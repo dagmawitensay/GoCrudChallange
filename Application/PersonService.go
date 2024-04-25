@@ -2,34 +2,36 @@ package Application
 
 import (
 	"errors"
+	"github.com/dagmawitensay/GOCRUDCHALLANGE/Domain"
+	"github.com/dagmawitensay/GOCRUDCHALLANGE/Infrastructure"
 )
 
 type PersonService struct {
-	personDatabase *personDatabase
+	personDatabase *Infrastructure.PersonDatabase
 }
 
-func NewPersonDatabase(db *PersonDatabase) *PersonSevice {
+func NewPersonService(db *Infrastructure.PersonDatabase) *PersonService {
 	return &PersonService{personDatabase: db}
 }
 
-func (ps *PersonService) GetPersonById(id string) (*Person, error) {
-	person := ps.personDatabase.GetPersonById(id)
+func (ps *PersonService) GetPersonById(id string) (*Domain.Person, error) {
+	person, err := ps.personDatabase.GetPersonById(id)
 	if person == nil {
-		return nil, errors.New("Person not found")
+		return nil, errors.New(err.Error())
 	}
 	return person, nil
 }
 
-func (ps *PersonService) GetAllPersons() []Person {
+func (ps *PersonService) GetAllPersons() []Domain.Person {
 	return ps.personDatabase.GetAllPersons()
 }
 
-func (ps *PersonService) CreatePerson(person Person) (*Person, error) {
+func (ps *PersonService) CreatePerson(person Domain.Person) (*Domain.Person, error) {
 	return ps.personDatabase.CreatePerson(person)
 }
 
-func (ps *PersonService) UpdatePerson(person Person) error {
-	err := ps.personDatabase.UpdatePerson(person)
+func (ps *PersonService) UpdatePerson(personId string, person Domain.Person) error {
+	err := ps.personDatabase.UpdatePerson(personId, person)
 	if err != nil {
 		return err
 	}
@@ -37,7 +39,7 @@ func (ps *PersonService) UpdatePerson(person Person) error {
 }
 
 func (ps *PersonService) DeletePerson(id string) error {
-	err != ps.personDatabase.DeletePerson(id)
+	err := ps.personDatabase.DeletePerson(id)
 	if err != nil {
 		return err
 	}

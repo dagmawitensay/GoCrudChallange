@@ -1,17 +1,19 @@
 package WebApi
 
 import (
-	"encoind/json"
-	"errors"
+	"encoding/json"
+	"github.com/go-playground/validator/v10"
+	"github.com/dagmawitensay/GOCRUDCHALLANGE/Application"
 	"github.com/gorilla/mux"
 	"net/http"
+	"github.com/dagmawitensay/GOCRUDCHALLANGE/Domain"
 )
 
 type PersonController struct {
-	personService *PersonService
+	personService *Application.PersonService
 }
 
-func NewPersonController(personService *PersonService) *PersonController {
+func NewPersonController(personService *Application.PersonService) *PersonController {
 	return &PersonController{personService: personService}
 }
 
@@ -28,10 +30,10 @@ func (pc *PersonController) GetAllPersons(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(allPersons)
 }
 
-func (pc *PersonController) GetPersonById(w http.ResponseWriter, r *Http.Request) {
+func (pc *PersonController) GetPersonById(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	personId := params["personId"]
-	person, err != pc.personService.GetPersonById(personId)
+	person, err := pc.personService.GetPersonById(personId)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(map[string]string{"error" : err.Error()})
@@ -41,8 +43,17 @@ func (pc *PersonController) GetPersonById(w http.ResponseWriter, r *Http.Request
 }
 
 func (pc *PersonController) CreatePerson(w http.ResponseWriter, r *http.Request) {
-	var person Person
+	validate := validator.New()
+	var person Domain.Person
 	err := json.NewDecoder(r.Body).Decode(&person)
+
+	err = validate.Struct(person)
+    if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+        return
+    }
+
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -63,14 +74,24 @@ func (pc *PersonController) CreatePerson(w http.ResponseWriter, r *http.Request)
 func (pc *PersonController) UpdatePerson(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	personId := params["personId"]
-	var person Person
-	err != json.NewDecoder(r.Body).Decode(&person)
+	var person Domain.Person
+	err := json.NewDecoder(r.Body).Decode(&person)
+	
+	validate := validator.New()
+
+	err = validate.Struct(person)
+    if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+        return
+    }
+	
 	if (err != nil) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
-	err := pc.personService.UpdatePerson(person)
+	err = pc.personService.UpdatePerson(personId, person)
 	
 	if (err != nil) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -87,7 +108,7 @@ func (pc *PersonController) DeltePerson(w http.ResponseWriter, r *http.Request) 
 	err := pc.personService.DeletePerson(personId)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Erro()})
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -100,9 +121,7 @@ func (pc *PersonController) NotFoundHandler(w http.ResponseWriter, r *http.Reque
 
 func (pc *PersonController) ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	statusCode := http.StatusInternalServerError
-	if e, ok := err.(*AppError); ok {
-		statusCode = e.StatusCode
-	}
+	
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }

@@ -1,19 +1,28 @@
 package main
 
 import (
-	"github.com/dagmawitensay/Application"
-	"github.com/dagmawitensay/Domain"
-	"github.com/dagmawitensay/Infrastructure"
+	"github.com/dagmawitensay/GOCRUDCHALLANGE/Application"
+	"github.com/dagmawitensay/GOCRUDCHALLANGE/Domain"
+	"github.com/dagmawitensay/GOCRUDCHALLANGE/Infrastructure"
+	"github.com/dagmawitensay/GOCRUDCHALLANGE/WebApi"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
-	router := mux.NewRotuer()
-	personDatabase := NewPersonDatabase()
-	personService := NewPersonService(personDatabase)
-	personController := NewPersonController(personService)
-	personController.SetUpRoute(routes)
+	router := mux.NewRouter()
+	router.Use(enableCORS)
+	personDatabase := Infrastructure.NewPersonDatabase([]Domain.Person{})
+	personService := Application.NewPersonService(personDatabase)
+	personController := WebApi.NewPersonController(personService)
+	personController.SetupRotues(router)
 
 	router.NotFoundHandler = http.HandlerFunc(personController.NotFoundHandler)
 	http.Handle("/", router)
